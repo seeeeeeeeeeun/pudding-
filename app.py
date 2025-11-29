@@ -66,26 +66,19 @@ def make_prompt(energy, mood, value):
 
 
 def generate_image(prompt):
-    if client is None:
-        return Image.new("RGB", (512, 512), "gray"), API_STATUS
-
     try:
         result = client.models.generate_images(
-            model=IMAGE_MODEL,
+            model="models/gemini-2.0-image-001",
             prompt=prompt,
             config=GenerateImagesConfig(
                 number_of_images=1,
                 aspect_ratio="1:1"
             )
         )
-
         img_bytes = result.generated_images[0].image.image_bytes
-        image = Image.open(BytesIO(img_bytes))
-        return image, "생성 성공!"
-
+        return Image.open(BytesIO(img_bytes)), "성공"
     except Exception as e:
-        print("IMAGE ERROR:", e)
-        return Image.new("RGB", (512, 512), "red"), f"API 오류: {e}"
+        return Image.new("RGB", (512, 512), color="red"), f"오류: {e}"
 
 
 with gr.Blocks() as demo:
