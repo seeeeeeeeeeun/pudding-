@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>나만의 푸딩 캐릭터 결과</title>
+</head>
+<body>
+    <h1>🌟 당신의 푸딩 캐릭터! 🌟</h1>
+    
+    <div id="image-display">
+        {% if image_data %}
+            <img src="data:image/png;base64,{{ image_data }}" alt="생성된 푸딩 캐릭터" style="max-width: 100%; height: auto; border: 5px solid #ffcc66;">
+        {% else %}
+            <p>이미지 생성에 오류가 발생했습니다.</p>
+        {% endif %}
+    </div>
+
+</body>
+</html>
