@@ -10,7 +10,7 @@ try:
     from google.genai.types import GenerateImagesConfig
     # 클라이언트 초기화 (API 키는 환경 변수에서 자동 로드됨)
     client = genai.Client()
-    IMAGE_MODEL = 'imagen-3.0-generate-001'
+    IMAGE_MODEL = 'imagen-3.0-generate-002'
     API_STATUS = "Gemini 클라이언트 초기화 성공"
 except Exception as e:
     # API 키 오류나 라이브러리 초기화 실패 시 더미 모드로 전환
