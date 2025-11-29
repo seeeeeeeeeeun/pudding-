@@ -64,5 +64,5 @@ def call_image_generation(prompt_text, client):
         response = client.models.generate_content
 
     except Exception as e:
-    # API 호출 실패, 키 오류 등 모든 종류의 에러를 처리
-    print(f"❌ 이미지 생성 실패: {e}")
+        # API 호출 실패, 키 오류 등 모든 종류의 에러를 처리
+        print(f"❌ 이미지 생성 실패: {e}")
