@@ -1,114 +1,64 @@
-import gradio as gr
 import os
-from io import BytesIO
-from PIL import Image
+import json
+from flask import Flask, request, jsonify, render_template
+from google import genai
+from google.genai.errors import APIError
 
-try:
-    from google import genai
-    from google.genai.types import GenerateImagesConfig
-    
-    client = genai.Client()
+app = Flask(__name__)
 
-    # ⭐ v1beta에서 실제 사용 가능한 이미지 생성 모델
-    IMAGE_MODEL = "models/gemini-2.0-image-001"
+# ----------------------------------------------------
+# 1. Gemini 클라이언트 초기화 및 설정
+# ----------------------------------------------------
 
-    API_STATUS = "Gemini API 초기화 성공"
+# Render에 설정된 환경 변수 'GEMINI_API_KEY'에서 키를 가져옵니다.
+API_KEY = os.environ.get("GEMINI_API_KEY")
 
-except Exception as e:
-    print(f"Gemini 초기화 실패: {e}")
+if not API_KEY:
+    print("FATAL: GEMINI_API_KEY 환경 변수가 설정되지 않았습니다. Render 환경 변수를 확인하세요.")
     client = None
-    IMAGE_MODEL = "Dummy Mode"
-    API_STATUS = f"Gemini API 오류: {e}"
+else:
+    # 클라이언트 초기화
+    client = genai.Client(api_key=API_KEY)
 
 
-BASE_STYLE = (
-    "cute anthropomorphic pudding character, thick black outline, "
-    "2D soft pastel sticker style, clean white background"
-)
+# ----------------------------------------------------
+# 2. 이미지 생성 프롬프트 조합 로직
+# ----------------------------------------------------
 
-FLAVOR_MAP = {
-    "외향": "bright strawberry red pudding",
-    "내향": "calming blueberry indigo pudding",
-}
-
-BEHAVIOR_MAP = {
-    "잔잔함": "sitting peacefully by a window, reading softly",
-    "활발함": "jumping with energy, cheerful expression",
-    "탐험·액티비티": "climbing a tiny mountain, adventurous look",
-    "예술적": "painting at a small easel",
-    "감성적": "watching a sunset emotionally",
-}
-
-VALUE_MAP = {
-    "안정감": "wearing a cozy scarf, reliable",
-    "설렘": "sparkling excited eyes",
-    "성장": "holding a sprout",
-    "유머": "winking with a playful hat",
-    "배려": "offering a flower kindly",
-}
-
-
-def make_prompt(energy, mood, value):
-    flavor = FLAVOR_MAP.get(energy, "caramel pudding")
-    behavior = BEHAVIOR_MAP.get(mood, "smiling softly")
-    value_adj = VALUE_MAP.get(value, "gentle personality")
-
-    prompt = f"{flavor}, {value_adj}, {behavior}, {BASE_STYLE}"
-
-    desc = (
-        f"### 🍮 성향 분석 결과\n"
-        f"- **에너지 유형:** {energy}\n"
-        f"- **데이트 분위기:** {mood}\n"
-        f"- **가치관:** {value}\n\n"
+def build_pudding_prompt(data):
+    """
+    사용자 입력 데이터를 기반으로 상세한 이미지 생성 프롬프트를 조합합니다.
+    (이 로직은 10가지 질문에 대한 답변 구조에 맞춰 조정해야 합니다.)
+    """
+    
+    # 사용자 답변 딕셔너리에서 값 추출 (예시)
+    gender = data.get('gender', 'Male')
+    energy = data.get('energy', 'Vibrant')
+    hobby = data.get('hobby', 'Music')
+    season = data.get('season', 'Spring')
+    
+    # 템플릿: 이미지 생성에 필요한 구체적이고 창의적인 묘사 문장
+    base_description = "A stylized, highly detailed illustration of a unique dessert character that looks like pudding."
+    
+    traits = (
+        f"The pudding is represented as a {gender} character, showing a {energy} demeanor. "
+        f"Its base is creatively themed with {hobby} accessories. "
+        f"The background features elements of {season}, and the character's expression is {data.get('emotion', 'confident')}. "
+        f"The overall style should be whimsical digital painting."
     )
+    
+    return f"{base_description} The character embodies the following traits: {traits}"
 
-    return prompt, desc
 
+# ----------------------------------------------------
+# 3. 이미지 생성 API 호출 함수 (모델 이름 수정 완료)
+# ----------------------------------------------------
 
-def generate_image(prompt):
+def call_image_generation(prompt_text, client):
+    """Gemini API를 호출하여 이미지를 생성하고 URL을 반환합니다."""
+    if not client:
+        return {"error": "API 클라이언트 오류: 키 설정 누락"}, 500
+        
     try:
-        result = client.models.generate_images(
-            model="models/gemini-2.0-image-001",
-            prompt=prompt,
-            config=GenerateImagesConfig(
-                number_of_images=1,
-                aspect_ratio="1:1"
-            )
-        )
-        img_bytes = result.generated_images[0].image.image_bytes
-        return Image.open(BytesIO(img_bytes)), "성공"
-    except Exception as e:
-        return Image.new("RGB", (512, 512), color="red"), f"오류: {e}"
-
-
-with gr.Blocks() as demo:
-    gr.Markdown("# 🍮 AI 소개팅 푸딩 캐릭터 생성기")
-
-    with gr.Row():
-        with gr.Column(scale=1):
-            q1 = gr.Radio(list(FLAVOR_MAP.keys()), label="① 에너지 유형", value="외향")
-            q5 = gr.Radio(list(BEHAVIOR_MAP.keys()), label="② 데이트 분위기", value="잔잔함")
-            q10 = gr.Radio(list(VALUE_MAP.keys()), label="③ 가치관", value="안정감")
-
-            btn = gr.Button("💖 생성하기")
-
-        with gr.Column(scale=2):
-            out_img = gr.Image(label="✨ 생성된 푸딩")
-            out_desc = gr.Markdown("---")
-            out_status = gr.Textbox(label="상태", interactive=False)
-            out_prompt = gr.Textbox(label="프롬프트", visible=False)
-
-    def run_all(a, b, c):
-        prompt, desc = make_prompt(a, b, c)
-        image, status = generate_image(prompt)
-        return image, desc, status, prompt
-
-    btn.click(run_all, [q1, q5, q10], [out_img, out_desc, out_status, out_prompt])
-
-
-if __name__ == "__main__":
-    demo.launch(
-        server_name="0.0.0.0",
-        server_port=int(os.environ.get("PORT", 7860))
-    )
-
+        # 🚨🚨🚨 이미지 생성 모델 이름으로 정확히 수정되었습니다. 🚨🚨🚨
+        response = client.models.generate_content
