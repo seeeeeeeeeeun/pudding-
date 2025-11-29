@@ -10,12 +10,8 @@ try:
     from google import genai
     from google.genai.types import GenerateImagesConfig
     
-    # 환경 변수(GEMINI_API_KEY) 자동 로딩
     client = genai.Client()
-    
-    # ⚠ 최신 이미지 생성 모델 이름 (100% 정답)
     IMAGE_MODEL = "models/image-generation-003"
-
     API_STATUS = "Gemini API 초기화 성공"
 
 except Exception as e:
@@ -56,14 +52,13 @@ VALUE_MAP = {
 
 
 # -------------------------
-# 3. 프롬프트 생성 함수
+# 3. 프롬프트 생성
 # -------------------------
 def make_prompt(energy, mood, value):
     flavor = FLAVOR_MAP.get(energy, "caramel pudding")
     behavior = BEHAVIOR_MAP.get(mood, "smiling softly")
     value_adj = VALUE_MAP.get(value, "gentle personality")
     
-    # 최종 프롬프트 구성
     prompt = f"{flavor}, {value_adj}, {behavior}, {BASE_STYLE}"
 
     description = (
@@ -106,27 +101,15 @@ def generate_image(prompt):
 # -------------------------
 # 5. Gradio UI
 # -------------------------
-with gr.Blocks(theme=gr.themes.Soft()) as demo:
+with gr.Blocks() as demo:   # ← theme 제거한 버전
     gr.Markdown("# 🍮 AI 소개팅 푸딩 캐릭터 생성기")
-    gr.Markdown("3가지 질문만 선택하면 AI가 나만의 **성향 푸딩 캐릭터**를 만들어줍니다!")
+    gr.Markdown("세 가지 질문만 선택하면 AI가 나만의 **성향 푸딩 캐릭터**를 만들어줍니다!")
 
     with gr.Row():
         with gr.Column(scale=1):
-            q1 = gr.Radio(
-                list(FLAVOR_MAP.keys()),
-                label="① 에너지 유형",
-                value="외향"
-            )
-            q5 = gr.Radio(
-                list(BEHAVIOR_MAP.keys()),
-                label="② 데이트 분위기",
-                value="잔잔함"
-            )
-            q10 = gr.Radio(
-                list(VALUE_MAP.keys()),
-                label="③ 가치관",
-                value="안정감"
-            )
+            q1 = gr.Radio(list(FLAVOR_MAP.keys()), label="① 에너지 유형", value="외향")
+            q5 = gr.Radio(list(BEHAVIOR_MAP.keys()), label="② 데이트 분위기", value="잔잔함")
+            q10 = gr.Radio(list(VALUE_MAP.keys()), label="③ 가치관", value="안정감")
 
             btn = gr.Button("💖 생성하기")
 
@@ -149,11 +132,10 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
 
 
 # -------------------------
-# 6. Render 서버 실행
+# 6. Render 배포용 서버 실행 설정
 # -------------------------
 if __name__ == "__main__":
     demo.launch(
         server_name="0.0.0.0",
         server_port=int(os.environ.get("PORT", 7860))
     )
-
