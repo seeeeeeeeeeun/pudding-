@@ -1,3 +1,4 @@
-gradio
-google-genai
-pillow
+flask
+gunicorn                 # Render에서 웹 서버를 실행하기 위한 WSGI 서버 (필수)
+google-genai             # Gemini API 호출을 위한 Google SDK
+requests                 # (선택 사항이지만, 웹 요청 관련 유용)
